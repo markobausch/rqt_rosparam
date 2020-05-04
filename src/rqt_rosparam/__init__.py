@@ -6,7 +6,7 @@ import rosparam
 import rospy
 from python_qt_binding.QtCore import Qt
 from python_qt_binding.QtWidgets import (QFormLayout, QLabel, QLineEdit,
-                                         QVBoxLayout, QWidget)
+                                         QVBoxLayout, QWidget, QScrollArea)
 from qt_gui.plugin import Plugin
 
 
@@ -17,21 +17,22 @@ class ROSParamPlugin(Plugin):
         # Give QObjects reasonable names
         self.setObjectName('ROSParamPlugin')
 
-        # Create QWidget
-        self._widget = QWidget()
-        self._layout = QVBoxLayout()
-        self._layout.setAlignment(Qt.AlignTop)
+        # Setyup UI
+        widget = QWidget()
 
-        self._widget.setLayout(self._layout)
+        scroll = QScrollArea()
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(widget)
+
+        context.add_widget(scroll)
+
+        self._form = QFormLayout()
+        widget.setLayout(self._form)
 
         if context.serial_number() > 1:
             self._widget.setWindowTitle(
                 self._widget.windowTitle() + (' (%d)' % context.serial_number()))
-
-        context.add_widget(self._widget)
-
-        self._form = QFormLayout()
-        self._layout.addLayout(self._form)
 
         self._params_map = {}
         self.add_params()
