@@ -36,7 +36,7 @@ class ROSParamPlugin(Plugin):
         self._params_map = {}
         self.add_params()
 
-        rospy.Timer(rospy.Duration(0.1), self.update_loop)
+        self._timer = rospy.Timer(rospy.Duration(0.1), self.update_loop)
 
     def add_params(self):
         for param in sorted(rosparam.list_params('')):
@@ -66,8 +66,7 @@ class ROSParamPlugin(Plugin):
             self.update_param(a)
 
     def shutdown_plugin(self):
-        # TODO unregister all publishers here
-        pass
+        self._timer.shutdown()
 
     def save_settings(self, plugin_settings, instance_settings):
         # TODO save intrinsic configuration, usually using:

@@ -4,15 +4,10 @@
       Simple tool to modify ros params
     </description>
     <qtgui>
-      <!-- optional grouping...
       <group>
-        <label>Group</label>
+        <label>Configuration</label>
       </group>
-      <group>
-        <label>Subgroup</label>
-      </group>
-      -->
-      <label>My first Python Plugin</label>
+      <label>rqt_rosparam</label>
       <icon type="theme">system-help</icon>
       <statustip>Great user interface to provide real value.</statustip>
     </qtgui>
