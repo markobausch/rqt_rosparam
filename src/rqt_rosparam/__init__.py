@@ -5,8 +5,8 @@ import os
 import rosparam
 import rospy
 from python_qt_binding.QtCore import Qt
-from python_qt_binding.QtWidgets import (QFormLayout, QLabel, QLineEdit,
-                                         QVBoxLayout, QWidget, QScrollArea)
+from python_qt_binding.QtWidgets import (QGridLayout, QHBoxLayout, QLabel,
+                                         QLineEdit, QScrollArea, QWidget)
 from qt_gui.plugin import Plugin
 
 
@@ -27,7 +27,10 @@ class ROSParamPlugin(Plugin):
 
         context.add_widget(scroll)
 
-        self._form = QFormLayout()
+        self._form = QGridLayout()
+        self._form.setAlignment(Qt.AlignTop)
+        self._form.setColumnStretch(0, 1)
+        self._form.setColumnStretch(1, 2)
         widget.setLayout(self._form)
 
         if context.serial_number() > 1:
@@ -35,16 +38,31 @@ class ROSParamPlugin(Plugin):
                 self._widget.windowTitle() + (' (%d)' % context.serial_number()))
 
         self._params_map = {}
+        self.add_search()
         self.add_params()
 
         self._timer = rospy.Timer(rospy.Duration(0.1), self.update_loop)
 
+    def add_search(self):
+        label = QLabel("Search")
+        label.setStyleSheet("font-weight: bold")
+        self._form.addWidget(label, 0, 0)
+        line = QLineEdit("")
+        line.textChanged.connect(self.update_search)
+        self._form.addWidget(line, 0, 1)
+
+    def update_search(self, text):
+        for idx, param in enumerate(self._params_map.keys(), 1):
+            show = text in param
+            self._form.itemAtPosition(idx, 0).widget().setVisible(show)
+            self._form.itemAtPosition(idx, 1).widget().setVisible(show)
+
     def add_params(self):
-        for param in sorted(rosparam.list_params('')):
-            label = QLabel(param)
+        for idx, param in enumerate(sorted(rosparam.list_params('')), 1):
+            self._form.addWidget(QLabel(param), idx, 0)
             line = QLineEdit(param)
+            self._form.addWidget(line, idx, 1)
             line.textChanged.connect(lambda text: self.set_param(param, text))
-            self._form.addRow(label, line)
             self._params_map[param] = line
             self.update_param(param)
 
