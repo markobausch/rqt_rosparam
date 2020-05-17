@@ -1,103 +1,84 @@
 from __future__ import print_function
 
-import os
-
+from pyqtgraph.parametertree import ParameterTree, parameterTypes
 import rosparam
-import rospy
-from python_qt_binding.QtCore import Qt
-from python_qt_binding.QtWidgets import (QGridLayout, QHBoxLayout, QLabel,
-                                         QLineEdit, QScrollArea, QWidget)
 from qt_gui.plugin import Plugin
+
+
+class ParamGroup(parameterTypes.GroupParameter):
+    """"Group for parameters with add button to add new parameters"""
+
+    def __init__(self, **opts):
+        self.types = {
+            'string': {
+                "name": "string_param",
+                "type": "str",
+                "value": "",
+            },
+            'float': {
+                "name": "float_param",
+                "type": "float",
+                "step": 0.1,
+                "value": 0,
+            },
+            'bool': {
+                "name": "bool_param",
+                "type": "bool",
+                "value": False,
+            }
+        }
+
+        opts['type'] = 'group'
+        opts['addText'] = "New Param"
+        opts['addList'] = self.types.keys()
+
+        super(ParamGroup, self).__init__(**opts)
+
+    def addNew(self, typ=None):
+        if typ is None:
+            return
+
+        val = self.types[typ]
+
+        default_params = {
+            "removable": True,
+            "renamable": True,
+        }
+
+        opts = default_params.copy()
+        opts.update(val)
+
+        self.addChild(opts, autoIncrementName=True)
 
 
 class ROSParamPlugin(Plugin):
 
     def __init__(self, context):
         super(ROSParamPlugin, self).__init__(context)
-        # Give QObjects reasonable names
-        self.setObjectName('ROSParamPlugin')
 
-        # Setyup UI
-        widget = QWidget()
+        self.setObjectName('rqt_rosparam')
 
-        scroll = QScrollArea()
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(widget)
+        param_tree = ParameterTree()
 
-        context.add_widget(scroll)
+        self.param = ParamGroup(name="Root Group")
 
-        self._form = QGridLayout()
-        self._form.setAlignment(Qt.AlignTop)
-        self._form.setColumnStretch(0, 1)
-        self._form.setColumnStretch(1, 2)
-        widget.setLayout(self._form)
+        param_tree.setParameters(self.param, showTop=False)
 
-        if context.serial_number() > 1:
-            self._widget.setWindowTitle(
-                self._widget.windowTitle() + (' (%d)' % context.serial_number()))
+        context.add_widget(param_tree)
 
-        self._params_map = {}
-        self.add_search()
-        self.add_params()
+        self.param.sigTreeStateChanged.connect(self.on_change)
 
-        self._timer = rospy.Timer(rospy.Duration(0.1), self.update_loop)
+    @staticmethod
+    def on_change(_param, changes):
+        for param, change, data in changes:
+            param = param.name()
 
-    def add_search(self):
-        label = QLabel("Search")
-        label.setStyleSheet("font-weight: bold")
-        self._form.addWidget(label, 0, 0)
-        line = QLineEdit("")
-        line.textChanged.connect(self.update_search)
-        self._form.addWidget(line, 0, 1)
+            if change == "value":
+                rosparam.set_param(param, data)
 
-    def update_search(self, text):
-        for idx, param in enumerate(self._params_map.keys(), 1):
-            show = text in param
-            self._form.itemAtPosition(idx, 0).widget().setVisible(show)
-            self._form.itemAtPosition(idx, 1).widget().setVisible(show)
+    def save_settings(self, _plugin_settings, instance_settings):
+        instance_settings.set_value("params", self.param.saveState())
 
-    def add_params(self):
-        for idx, param in enumerate(sorted(rosparam.list_params('')), 1):
-            self._form.addWidget(QLabel(param), idx, 0)
-            line = QLineEdit(param)
-            self._form.addWidget(line, idx, 1)
-            line.textChanged.connect(lambda text: self.set_param(param, text))
-            self._params_map[param] = line
-            self.update_param(param)
-
-    def set_param(self, param, value):
-        if value != "":
-            rosparam.set_param(param, value)
-
-    def update_param(self, param):
-        value = rosparam.get_param(param)
-        widget = self._params_map[param]
-
-        if type(value) != str:
-            value = str(value)
-
-        if widget.text() != value:
-            widget.setText(value)
-
-    def update_loop(self, evt):
-        for a in self._params_map.keys():
-            self.update_param(a)
-
-    def shutdown_plugin(self):
-        self._timer.shutdown()
-
-    def save_settings(self, plugin_settings, instance_settings):
-        # TODO save intrinsic configuration, usually using:
-        # instance_settings.set_value(k, v)
-        pass
-
-    def restore_settings(self, plugin_settings, instance_settings):
-        # TODO restore intrinsic configuration, usually using:
-        # v = instance_settings.value(k)
-        pass
-
-    # def trigger_configuration(self):
-        # Comment in to signal that the plugin has a way to configure
-        # This will enable a setting button (gear icon) in each dock widget title bar
-        # Usually used to open a modal configuration dialog
+    def restore_settings(self, _plugin_settings, instance_settings):
+        params = instance_settings.value("params")
+        self.param.restoreState(params)
