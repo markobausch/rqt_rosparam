@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from pyqtgraph.parametertree import ParameterTree, parameterTypes
-import rosparam
+import rospy
 from qt_gui.plugin import Plugin
 
 
@@ -74,11 +74,12 @@ class ROSParamPlugin(Plugin):
             param = param.name()
 
             if change == "value":
-                rosparam.set_param(param, data)
+                rospy.set_param(param, data)
 
     def save_settings(self, _plugin_settings, instance_settings):
         instance_settings.set_value("params", self.param.saveState())
 
     def restore_settings(self, _plugin_settings, instance_settings):
         params = instance_settings.value("params")
-        self.param.restoreState(params)
+        if params is not None:
+            self.param.restoreState(params)
