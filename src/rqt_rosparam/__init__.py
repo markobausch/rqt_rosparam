@@ -57,8 +57,13 @@ class ROSParamPlugin(Plugin):
         super(ROSParamPlugin, self).__init__(context)
 
         self.setObjectName('rqt_rosparam')
-
         param_tree = ParameterTree()
+        param_tree.setObjectName("rqt_rosparamUI")
+        param_tree.setWindowTitle("rqt_rosparam")
+
+        if context.serial_number() > 1:
+            param_tree.setWindowTitle(param_tree.windowTitle() + (
+                " ({:d})".format(context.serial_number())))
 
         self.param = ParamGroup(name="Root Group")
 

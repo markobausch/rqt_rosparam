@@ -9,7 +9,7 @@
       </group>
       <label>rqt_rosparam</label>
       <icon type="theme">system-help</icon>
-      <statustip>Great user interface to provide real value.</statustip>
+      <statustip>Simple tool to set ROS params</statustip>
     </qtgui>
   </class>
 </library>
