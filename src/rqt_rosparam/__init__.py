@@ -1,8 +1,9 @@
 from __future__ import print_function
 
-from pyqtgraph.parametertree import ParameterTree, parameterTypes
+from pyqtgraph.parametertree import ParameterTree, parameterTypes, Parameter
 import rospy
 from qt_gui.plugin import Plugin
+from python_qt_binding.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QLineEdit, QCompleter, QMenuBar
 
 
 class ParamDialog(QDialog):
@@ -245,7 +246,7 @@ class ROSParamPlugin(Plugin):
 
         self.param = ParamGroup(name="Root Group")
 
-        menu = self.menuBar()
+        menu = QMenuBar(param_tree)
         menu.addAction("Add Float").triggered.connect(self.add_number)
         menu.addAction("Add Bool").triggered.connect(self.add_bool)
         menu.addAction("Add Str").triggered.connect(self.add_str)
@@ -281,22 +282,23 @@ class ROSParamPlugin(Plugin):
 
     def add_group(self):
         m = ParamDialog("group")
-        if m.exec():
+        if m.exec_():
             self.add_child(m.get_opts())
 
     def add_bool(self):
         m = ParamDialog("bool")
-        if m.exec():
+        print(dir(m))
+        if m.exec_():
             self.add_child(m.get_opts())
 
     def add_str(self):
         m = ParamDialog("str")
-        if m.exec():
+        if m.exec_():
             self.add_child(m.get_opts())
 
     def add_number(self):
         m = ParamDialog("float")
-        if m.exec():
+        if m.exec_():
             self.add_child(m.get_opts())
 
     def save_settings(self, _plugin_settings, instance_settings):
