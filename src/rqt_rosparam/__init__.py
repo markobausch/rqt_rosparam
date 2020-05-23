@@ -5,6 +5,8 @@ import rospy
 from qt_gui.plugin import Plugin
 from python_qt_binding.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QMenuBar
 
+CONFIG_VERSION = 1.0
+
 
 class ParamDialog(QDialog):
     def __init__(self, parm_type, opts=None, *args, **kwargs):
@@ -51,12 +53,6 @@ class ParamDialog(QDialog):
                 #     "type": "bool",
                 #     "value": False
                 # },
-                {
-                    "name": "value",
-                    "type": "float",
-                    "value": 0,
-                    "step": 0.1,
-                },
                 {
                     "name": "limits",
                     "type": "group",
@@ -112,7 +108,6 @@ class ParamDialog(QDialog):
 
         param_tree.setParameters(self.param, showTop=False)
 
-        self.param_path.setPlaceholderText("param path")
         self.layout.addWidget(param_tree)
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
@@ -248,13 +243,13 @@ class ROSParamPlugin(Plugin):
             elif change == "context":
                 # currently not available
                 m = ParamDialog(param.opts["type"], param.opts)
-                if m.exec():
+                if m.exec_():
                     param.setOpts(**m.get_opts())
 
     def add_param(self, param_type):
         def create():
             m = ParamDialog(param_type)
-            if not m.exec():
+            if not m.exec_():
                 return
 
             val = m.get_opts()
@@ -275,8 +270,10 @@ class ROSParamPlugin(Plugin):
 
     def save_settings(self, _plugin_settings, instance_settings):
         instance_settings.set_value("params", self.param.saveState())
+        instance_settings.set_value("version", CONFIG_VERSION)
 
     def restore_settings(self, _plugin_settings, instance_settings):
         params = instance_settings.value("params")
-        if params is not None:
+        version = instance_settings.value("version")
+        if version == CONFIG_VERSION and params is not None:
             self.param.restoreState(params)
