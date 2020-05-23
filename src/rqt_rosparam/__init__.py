@@ -3,11 +3,11 @@ from __future__ import print_function
 from pyqtgraph.parametertree import ParameterTree, parameterTypes, Parameter
 import rospy
 from qt_gui.plugin import Plugin
-from python_qt_binding.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QLineEdit, QCompleter, QMenuBar
+from python_qt_binding.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QMenuBar
 
 
 class ParamDialog(QDialog):
-    def __init__(self, parm_type, *args, **kwargs):
+    def __init__(self, parm_type, opts=None, *args, **kwargs):
         super(ParamDialog, self).__init__(*args, **kwargs)
 
         self.type = parm_type
@@ -24,6 +24,12 @@ class ParamDialog(QDialog):
 
         type_params = {
             "float": [
+                {
+                    "name": "default",
+                    "title": "Default",
+                    "type": "float",
+                    "value": 0.0,
+                },
                 {
                     "name": "step",
                     "type": "float",
@@ -76,7 +82,7 @@ class ParamDialog(QDialog):
             ],
             "bool": [
                 {
-                    "name": "value",
+                    "name": "default",
                     "title": "Default",
                     "type": "bool",
                     "value": False,
@@ -84,33 +90,51 @@ class ParamDialog(QDialog):
             ],
             "str": [
                 {
-                    "name": "value",
+                    "name": "default",
                     "title": "Default",
                     "type": "str",
-                    "value": False,
+                    "value": "",
                 },
             ],
         }
 
+        # Add default params
+        param = type_params.get(self.type, [])
+        param.insert(0, {
+            "name": "name",
+            "title": "Param Path",
+            "type": "str",
+            "value": "",
+        })
+
         self.param = Parameter.create(name='params', type='group',
-                                      children=type_params.get(self.type, []))
+                                      children=param)
 
         param_tree.setParameters(self.param, showTop=False)
-        self.param_path = QLineEdit()
-
-        # get topics
-        self.param_path.setCompleter(QCompleter(["/test/test", "/param2/float",
-                                                 "apples", "banan"]))
 
         self.param_path.setPlaceholderText("param path")
-        self.layout.addWidget(self.param_path)
         self.layout.addWidget(param_tree)
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
+        # populate parm tree for editing
+        if opts is not None:
+            for child in self.param.children():
+                name = child.name()
+                if name in opts:
+                    child.setValue(opts[name])
+
+            if "limits" in opts:
+                limit_min, limit_max = opts["limits"]
+                limits = self.param.child("limits")
+                limits.child("enable").setValue(True)
+                limits.child("min").setValue(limit_min),
+                limits.child("max").setValue(limit_max),
+
+        self.setMinimumSize(300, 300)
+
     def get_opts(self):
         opts = {
-            "name": self.param_path.text(),
             "type": self.type,
         }
 
@@ -171,63 +195,15 @@ class Tree(ParameterTree):
         if param == target:
             return
         new_parent = target.parent()
-        print(target, new_parent)
 
         # remove item
         param.remove()
 
         if isinstance(target, parameterTypes.GroupParameter):
-            print("True")
             target.addChild(param.opts)
         else:
             # create a new item from the old opts
             new_parent.insertChild(index.row(), param.opts)
-
-
-class ParamGroup(parameterTypes.GroupParameter):
-    """"Group for parameters with add button to add new parameters"""
-
-    def __init__(self, **opts):
-        self.types = {
-            'string': {
-                "name": "string_param",
-                "type": "str",
-                "value": "",
-            },
-            'float': {
-                "name": "float_param",
-                "type": "float",
-                "step": 0.1,
-                "value": 0,
-            },
-            'bool': {
-                "name": "bool_param",
-                "type": "bool",
-                "value": False,
-            }
-        }
-
-        opts['type'] = 'group'
-        opts['addText'] = "New Param"
-        opts['addList'] = self.types.keys()
-
-        super(ParamGroup, self).__init__(**opts)
-
-    def addNew(self, typ=None):
-        if typ is None:
-            return
-
-        val = self.types[typ]
-
-        default_params = {
-            "removable": True,
-            "renamable": True,
-        }
-
-        opts = default_params.copy()
-        opts.update(val)
-
-        self.addChild(opts, autoIncrementName=True)
 
 
 class ROSParamPlugin(Plugin):
@@ -244,13 +220,13 @@ class ROSParamPlugin(Plugin):
             param_tree.setWindowTitle(param_tree.windowTitle() + (
                 " ({:d})".format(context.serial_number())))
 
-        self.param = ParamGroup(name="Root Group")
+        self.param = parameterTypes.GroupParameter(name="Root Group")
 
         menu = QMenuBar(param_tree)
-        menu.addAction("Add Float").triggered.connect(self.add_number)
-        menu.addAction("Add Bool").triggered.connect(self.add_bool)
-        menu.addAction("Add Str").triggered.connect(self.add_str)
-        menu.addAction("Add Group").triggered.connect(self.add_group)
+        menu.addAction("Add Float").triggered.connect(self.add_param("float"))
+        menu.addAction("Add Bool").triggered.connect(self.add_param("bool"))
+        menu.addAction("Add Str").triggered.connect(self.add_param("str"))
+        menu.addAction("Add Group").triggered.connect(self.add_param("group"))
 
         param_tree.setParameters(self.param, showTop=False)
 
@@ -268,38 +244,34 @@ class ROSParamPlugin(Plugin):
 
             if change == "value":
                 rospy.set_param(child_name, data)
+                print("Set '{}' to '{}'".format(child_name, data))
+            elif change == "context":
+                # currently not available
+                m = ParamDialog(param.opts["type"], param.opts)
+                if m.exec():
+                    param.setOpts(**m.get_opts())
 
-    def add_child(self, val):
-        default_params = {
-            "removable": True,
-            "renamable": True,
-            "movable": True,
-        }
+    def add_param(self, param_type):
+        def create():
+            m = ParamDialog(param_type)
+            if not m.exec():
+                return
 
-        opts = default_params.copy()
-        opts.update(val)
-        self.param.addChild(opts, autoIncrementName=True)
+            val = m.get_opts()
 
-    def add_group(self):
-        m = ParamDialog("group")
-        if m.exec_():
-            self.add_child(m.get_opts())
+            default_params = {
+                "removable": True,
+                "renamable": True,
+                "movable": True,
+                "context": {
+                    "edit": "Edit"
+                }
+            }
 
-    def add_bool(self):
-        m = ParamDialog("bool")
-        print(dir(m))
-        if m.exec_():
-            self.add_child(m.get_opts())
-
-    def add_str(self):
-        m = ParamDialog("str")
-        if m.exec_():
-            self.add_child(m.get_opts())
-
-    def add_number(self):
-        m = ParamDialog("float")
-        if m.exec_():
-            self.add_child(m.get_opts())
+            opts = default_params.copy()
+            opts.update(val)
+            self.param.addChild(opts, autoIncrementName=True)
+        return create
 
     def save_settings(self, _plugin_settings, instance_settings):
         instance_settings.set_value("params", self.param.saveState())
