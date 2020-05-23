@@ -17,8 +17,7 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>rqt_gui</exec_depend>
   <exec_depend>rqt_gui_py</exec_depend>
-  <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-pyqtgraph</exec_depend>
-  <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-pyqtgraph</exec_depend>
+  <exec_depend>python-pyqtgraph</exec_depend>
 
   <export>
     <rqt_gui plugin="${prefix}/plugin.xml"/>
