@@ -3,8 +3,10 @@ from __future__ import print_function
 from pyqtgraph.parametertree import ParameterTree, parameterTypes, Parameter
 import rospy
 from qt_gui.plugin import Plugin
-from python_qt_binding.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QMenuBar
+from python_qt_binding.QtWidgets import (QDialog, QDialogButtonBox,
+                                         QVBoxLayout, QMenuBar)
 
+# Used to prevent exceptions on restoreState
 CONFIG_VERSION = 1.0
 
 
@@ -36,7 +38,8 @@ class ParamDialog(QDialog):
                     "name": "step",
                     "type": "float",
                     "value": 0.1,
-                    "step": 0.1,
+                    "step": 1,
+                    "dec": True,
                 },
                 {
                     "name": "suffix",
@@ -218,10 +221,9 @@ class ROSParamPlugin(Plugin):
         self.param = parameterTypes.GroupParameter(name="Root Group")
 
         menu = QMenuBar(param_tree)
-        menu.addAction("Add Float").triggered.connect(self.add_param("float"))
-        menu.addAction("Add Bool").triggered.connect(self.add_param("bool"))
-        menu.addAction("Add Str").triggered.connect(self.add_param("str"))
-        menu.addAction("Add Group").triggered.connect(self.add_param("group"))
+        for param_type in ["float", "bool", "str", "group"]:
+            menu.addAction("Add {}".format(param_type)).triggered.connect(
+                self.add_param(param_type))
 
         param_tree.setParameters(self.param, showTop=False)
 
