@@ -4,7 +4,7 @@ from pyqtgraph.parametertree import ParameterTree, parameterTypes, Parameter
 import rospy
 from qt_gui.plugin import Plugin
 from python_qt_binding.QtWidgets import (QDialog, QDialogButtonBox,
-                                         QVBoxLayout, QMenuBar)
+                                         QVBoxLayout, QMenuBar, QLabel)
 
 # Used to prevent exceptions on restoreState
 CONFIG_VERSION = 1.0
@@ -33,6 +33,7 @@ class ParamDialog(QDialog):
                     "title": "Default",
                     "type": "float",
                     "value": 0.0,
+                    "tip": "standard value, used by the yellow reset button",
                 },
                 {
                     "name": "step",
@@ -40,21 +41,24 @@ class ParamDialog(QDialog):
                     "value": 0.1,
                     "step": 1,
                     "dec": True,
+                    "tip": "increment when using the arrows or scroll wheel",
                 },
                 {
                     "name": "suffix",
                     "type": "str",
-                    "value": ''
+                    "value": "",
+                    "tip": "show a suffix like '100 m'",
                 },
                 {
                     "name": "siPrefix",
                     "type": "bool",
-                    "value": False
+                    "value": False,
+                    "tip": "shows '1k' instead of '1000'",
                 },
                 # {
                 #     "name": "dec",
                 #     "type": "bool",
-                #     "value": False
+                #     "value": False,
                 # },
                 {
                     "name": "limits",
@@ -76,7 +80,7 @@ class ParamDialog(QDialog):
                             "type": "float",
                             "value": 10,
                         },
-                    ]
+                    ],
                 },
             ],
             "bool": [
@@ -85,6 +89,7 @@ class ParamDialog(QDialog):
                     "title": "Default",
                     "type": "bool",
                     "value": False,
+                    "tip": "standard value, used by the yellow reset button",
                 },
             ],
             "str": [
@@ -93,16 +98,25 @@ class ParamDialog(QDialog):
                     "title": "Default",
                     "type": "str",
                     "value": "",
+                    "tip": "standard value, used by the yellow reset button",
                 },
-            ],
+            ]
+        }
+
+        help_text = {
+            "group": "With a group you can simplify your param structure. "
+                     "The group name is used as prefix for the children "
+                     "of the group. "
+                     "=> /<group_name>/<child_name>"
         }
 
         # Add default params
         param = type_params.get(self.type, [])
         param.insert(0, {
             "name": "name",
-            "title": "Param Path",
+            "title": "param name",
             "type": "str",
+            "tip": "name of the parameter, like: 'test/param'",
             "value": "",
         })
 
@@ -110,6 +124,11 @@ class ParamDialog(QDialog):
                                       children=param)
 
         param_tree.setParameters(self.param, showTop=False)
+        help_label = QLabel(help_text.get(
+            parm_type, "Hover over items for more information"))
+
+        help_label.setWordWrap(True)
+        self.layout.addWidget(help_label)
 
         self.layout.addWidget(param_tree)
         self.layout.addWidget(self.buttonBox)
