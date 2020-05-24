@@ -156,9 +156,13 @@ class ParamDialog(QDialog):
         }
 
         for child in self.param.children():
+            # prevent iterating over group (they don't have a value)
             if isinstance(child, parameterTypes.GroupParameter):
                 continue
             opts[child.name()] = child.value()
+
+        # removing leading & trailing /
+        opts["name"] = opts["name"].strip("/")
 
         if self.type == "float":
             limits = self.param.child("limits")
