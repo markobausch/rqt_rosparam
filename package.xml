@@ -3,7 +3,7 @@
   <name>rqt_rosparam</name>
   <version>0.1.0</version>
   <description>The rqt_rosparam package</description>
-  <maintainer email="marko.bausch@global-formula-racing.com">Marko Bausch</maintainer>
+  <maintainer email="markobausch+ros@protonmail.com">Marko Bausch</maintainer>
 
   <license>MIT</license>
 
@@ -17,7 +17,6 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>rqt_gui</exec_depend>
   <exec_depend>rqt_gui_py</exec_depend>
-  <exec_depend>python-pyqtgraph</exec_depend>
 
   <export>
     <rqt_gui plugin="${prefix}/plugin.xml"/>

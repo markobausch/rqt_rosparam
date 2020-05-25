@@ -1,10 +1,11 @@
 from __future__ import print_function
 
-from pyqtgraph.parametertree import ParameterTree, parameterTypes, Parameter
+from .pyqtgraph.parametertree import ParameterTree, parameterTypes, Parameter
 import rospy
 from qt_gui.plugin import Plugin
 from python_qt_binding.QtWidgets import (QDialog, QDialogButtonBox,
                                          QVBoxLayout, QMenuBar, QLabel)
+
 
 # Used to prevent exceptions on restoreState
 CONFIG_VERSION = 1.0
