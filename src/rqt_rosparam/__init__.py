@@ -1,11 +1,11 @@
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
-from .pyqtgraph.parametertree import ParameterTree, parameterTypes, Parameter
 import rospy
+from python_qt_binding.QtWidgets import (QDialog, QDialogButtonBox, QLabel,
+                                         QMenuBar, QVBoxLayout)
 from qt_gui.plugin import Plugin
-from python_qt_binding.QtWidgets import (QDialog, QDialogButtonBox,
-                                         QVBoxLayout, QMenuBar, QLabel)
 
+from .pyqtgraph.parametertree import Parameter, ParameterTree, parameterTypes
 
 # Used to prevent exceptions on restoreState
 CONFIG_VERSION = 1.0
@@ -20,9 +20,9 @@ class ParamDialog(QDialog):
 
         btn_group = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
 
-        self.buttonBox = QDialogButtonBox(btn_group)
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.reject)
+        self.button_box = QDialogButtonBox(btn_group)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
 
         self.layout = QVBoxLayout()
         param_tree = ParameterTree()
@@ -132,7 +132,7 @@ class ParamDialog(QDialog):
         self.layout.addWidget(help_label)
 
         self.layout.addWidget(param_tree)
-        self.layout.addWidget(self.buttonBox)
+        self.layout.addWidget(self.button_box)
         self.setLayout(self.layout)
 
         # populate parm tree for editing
@@ -146,8 +146,8 @@ class ParamDialog(QDialog):
                 limit_min, limit_max = opts["limits"]
                 limits = self.param.child("limits")
                 limits.child("enable").setValue(True)
-                limits.child("min").setValue(limit_min),
-                limits.child("max").setValue(limit_max),
+                limits.child("min").setValue(limit_min)
+                limits.child("max").setValue(limit_max)
 
         self.setMinimumSize(300, 300)
 
@@ -179,14 +179,14 @@ class Tree(ParameterTree):
     """"Custom Paramtree to support drag and drop reorder"""
 
     def dragEnterEvent(self, event):
-        super(ParameterTree, self).dragEnterEvent(event)
+        super(Tree, self).dragEnterEvent(event)
         if self.itemAt(event.pos()) is None:
             event.ignore()
         else:
             event.accept()
 
     def dragMoveEvent(self, event):
-        super(ParameterTree, self).dragMoveEvent(event)
+        super(Tree, self).dragMoveEvent(event)
         if self.itemAt(event.pos()) is None:
             event.ignore()
         else:
@@ -207,13 +207,13 @@ class Tree(ParameterTree):
 
             event.accept()
 
-    def dropEvent(self, event):
-        if self.itemAt(event.pos()) is None:
+    def dropEvent(self, ev):
+        if self.itemAt(ev.pos()) is None:
             return
 
-        param = event.source().currentItem().param
-        index = self.indexAt(event.pos())
-        target = self.itemAt(event.pos()).param
+        param = ev.source().currentItem().param
+        index = self.indexAt(ev.pos())
+        target = self.itemAt(ev.pos()).param
         if param == target:
             return
         new_parent = target.parent()
@@ -268,17 +268,17 @@ class ROSParamPlugin(Plugin):
                 print("Set '{}' to '{}'".format(child_name, data))
             elif change == "context":
                 # currently not available
-                m = ParamDialog(param.opts["type"], param.opts)
-                if m.exec_():
-                    param.setOpts(**m.get_opts())
+                dialog = ParamDialog(param.opts["type"], param.opts)
+                if dialog.exec_():
+                    param.setOpts(**dialog.get_opts())
 
     def add_param(self, param_type):
         def create():
-            m = ParamDialog(param_type)
-            if not m.exec_():
+            dialog = ParamDialog(param_type)
+            if not dialog.exec_():
                 return
 
-            val = m.get_opts()
+            val = dialog.get_opts()
 
             default_params = {
                 "removable": True,
