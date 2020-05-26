@@ -11,6 +11,90 @@ from .pyqtgraph.parametertree import Parameter, ParameterTree, parameterTypes
 CONFIG_VERSION = 1.0
 
 
+TYPE_PARAMS = {
+    "float": [
+        {
+            "name": "default",
+            "title": "Default",
+            "type": "float",
+            "value": 0.0,
+            "tip": "standard value, used by the yellow reset button",
+        },
+        {
+            "name": "step",
+            "type": "float",
+            "value": 0.1,
+            "step": 1,
+            "dec": True,
+            "tip": "increment when using the arrows or scroll wheel",
+        },
+        {
+            "name": "suffix",
+            "type": "str",
+            "value": "",
+            "tip": "show a suffix like '100 m'",
+        },
+        {
+            "name": "siPrefix",
+            "type": "bool",
+            "value": False,
+            "tip": "shows '1k' instead of '1000'",
+        },
+        # {
+        #     "name": "dec",
+        #     "type": "bool",
+        #     "value": False,
+        # },
+        {
+            "name": "limits",
+            "type": "group",
+            "children": [
+                {
+                    "name": "enable",
+                    "title": "Enable limits",
+                    "type": "bool",
+                    "value": False,
+                },
+                {
+                    "name": "min",
+                    "type": "float",
+                    "value": 0,
+                },
+                {
+                    "name": "max",
+                    "type": "float",
+                    "value": 10,
+                },
+            ],
+        },
+    ],
+    "bool": [
+        {
+            "name": "default",
+            "title": "Default",
+            "type": "bool",
+            "value": False,
+            "tip": "standard value, used by the yellow reset button",
+        },
+    ],
+    "str": [
+        {
+            "name": "default",
+            "title": "Default",
+            "type": "str",
+            "value": "",
+            "tip": "standard value, used by the yellow reset button",
+        },
+    ]
+}
+
+HELP_TEXT = {
+    "group": "With a group you can simplify your param structure. "
+             "The group name is used as prefix for the children of the group. "
+             "=> /<group_name>/<child_name>"
+}
+
+
 class ParamDialog(QDialog):
     def __init__(self, parm_type, opts=None, *args, **kwargs):
         super(ParamDialog, self).__init__(*args, **kwargs)
@@ -18,101 +102,27 @@ class ParamDialog(QDialog):
         self.type = parm_type
         self.setWindowTitle("New {}".format(parm_type))
 
-        btn_group = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
 
-        self.button_box = QDialogButtonBox(btn_group)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-
-        self.layout = QVBoxLayout()
         param_tree = ParameterTree()
 
-        type_params = {
-            "float": [
-                {
-                    "name": "default",
-                    "title": "Default",
-                    "type": "float",
-                    "value": 0.0,
-                    "tip": "standard value, used by the yellow reset button",
-                },
-                {
-                    "name": "step",
-                    "type": "float",
-                    "value": 0.1,
-                    "step": 1,
-                    "dec": True,
-                    "tip": "increment when using the arrows or scroll wheel",
-                },
-                {
-                    "name": "suffix",
-                    "type": "str",
-                    "value": "",
-                    "tip": "show a suffix like '100 m'",
-                },
-                {
-                    "name": "siPrefix",
-                    "type": "bool",
-                    "value": False,
-                    "tip": "shows '1k' instead of '1000'",
-                },
-                # {
-                #     "name": "dec",
-                #     "type": "bool",
-                #     "value": False,
-                # },
-                {
-                    "name": "limits",
-                    "type": "group",
-                    "children": [
-                        {
-                            "name": "enable",
-                            "title": "Enable limits",
-                            "type": "bool",
-                            "value": False,
-                        },
-                        {
-                            "name": "min",
-                            "type": "float",
-                            "value": 0,
-                        },
-                        {
-                            "name": "max",
-                            "type": "float",
-                            "value": 10,
-                        },
-                    ],
-                },
-            ],
-            "bool": [
-                {
-                    "name": "default",
-                    "title": "Default",
-                    "type": "bool",
-                    "value": False,
-                    "tip": "standard value, used by the yellow reset button",
-                },
-            ],
-            "str": [
-                {
-                    "name": "default",
-                    "title": "Default",
-                    "type": "str",
-                    "value": "",
-                    "tip": "standard value, used by the yellow reset button",
-                },
-            ]
-        }
+        help_label = QLabel(HELP_TEXT.get(
+            parm_type, "Hover over items for more information"))
 
-        help_text = {
-            "group": "With a group you can simplify your param structure. "
-                     "The group name is used as prefix for the children "
-                     "of the group. "
-                     "=> /<group_name>/<child_name>"
-        }
+        help_label.setWordWrap(True)
+
+        layout = QVBoxLayout()
+        layout.addWidget(help_label)
+        layout.addWidget(param_tree)
+        layout.addWidget(button_box)
+
+        self.setLayout(layout)
 
         # Add default params
-        param = type_params.get(self.type, [])
+        param = TYPE_PARAMS.get(self.type, []).copy()
         param.insert(0, {
             "name": "name",
             "title": "param name",
@@ -125,15 +135,6 @@ class ParamDialog(QDialog):
                                       children=param)
 
         param_tree.setParameters(self.param, showTop=False)
-        help_label = QLabel(help_text.get(
-            parm_type, "Hover over items for more information"))
-
-        help_label.setWordWrap(True)
-        self.layout.addWidget(help_label)
-
-        self.layout.addWidget(param_tree)
-        self.layout.addWidget(self.button_box)
-        self.setLayout(self.layout)
 
         # populate parm tree for editing
         if opts is not None:
@@ -163,7 +164,7 @@ class ParamDialog(QDialog):
             opts[child.name()] = child.value()
 
         # removing leading & trailing /
-        opts["name"] = opts["name"].strip("/")
+        opts["name"] = opts["name"].strip("/").replace(" ", "_")
 
         if self.type == "float":
             limits = self.param.child("limits")
@@ -172,6 +173,7 @@ class ParamDialog(QDialog):
                     limits.child("min").value(),
                     limits.child("max").value(),
                 )
+
         return opts
 
 
@@ -247,7 +249,9 @@ class ROSParamPlugin(Plugin):
         menu = QMenuBar(param_tree)
         for param_type in ["float", "bool", "str", "group"]:
             menu.addAction("Add {}".format(param_type)).triggered.connect(
-                self.add_param(param_type))
+                self.add_param_dialog(param_type))
+
+        menu.addAction("Load all params").triggered.connect(self.load_params)
 
         param_tree.setParameters(self.param, showTop=False)
 
@@ -272,7 +276,7 @@ class ROSParamPlugin(Plugin):
                 if dialog.exec_():
                     param.setOpts(**dialog.get_opts())
 
-    def add_param(self, param_type):
+    def add_param_dialog(self, param_type):
         def create():
             dialog = ParamDialog(param_type)
             if not dialog.exec_():
@@ -280,19 +284,50 @@ class ROSParamPlugin(Plugin):
 
             val = dialog.get_opts()
 
-            default_params = {
-                "removable": True,
-                "renamable": True,
-                "movable": True,
-                "context": {
-                    "edit": "Edit"
-                }
-            }
-
-            opts = default_params.copy()
-            opts.update(val)
-            self.param.addChild(opts, autoIncrementName=True)
+            self.add_param(val)
         return create
+
+    def add_param(self, val):
+        default_params = {
+            "removable": True,
+            "renamable": True,
+            "movable": True,
+            "context": {
+                "edit": "Edit"
+            }
+        }
+
+        opts = default_params.copy()
+        opts.update(val)
+        self.param.addChild(opts, autoIncrementName=True)
+
+    def load_params(self):
+
+        def parse_params(data, path=""):
+            for key, value in data.items():
+                # skip default ros params
+                if path == "" and key in ["run_id", "roslaunch", "rosversion",
+                                          "rosdistro"]:
+                    continue
+
+                current_path = "{}/{}".format(path, key)
+
+                if isinstance(value, dict):
+                    parse_params(value, current_path)
+                elif current_path not in self.param.names:
+                    type_name = type(value).__name__
+                    val = {
+                        "name": current_path,
+                        "type": type_name,
+                        "default": value,
+                        "value": value,
+                    }
+                    print(val)
+
+                    self.add_param(val)
+
+        params = rospy.get_param("")
+        parse_params(params)
 
     def save_settings(self, _plugin_settings, instance_settings):
         instance_settings.set_value("params", self.param.saveState())
