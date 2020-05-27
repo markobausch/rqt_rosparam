@@ -68,6 +68,62 @@ TYPE_PARAMS = {
             ],
         },
     ],
+    "int": [
+        {
+            "name": "default",
+            "title": "Default",
+            "type": "int",
+            "value": 0,
+            "tip": "standard value, used by the yellow reset button",
+        },
+        {
+            "name": "step",
+            "type": "int",
+            "value": 1,
+            "step": 1,
+            "dec": True,
+            "tip": "increment when using the arrows or scroll wheel",
+        },
+        {
+            "name": "suffix",
+            "type": "str",
+            "value": "",
+            "tip": "show a suffix like '100 m'",
+        },
+        {
+            "name": "siPrefix",
+            "type": "bool",
+            "value": False,
+            "tip": "shows '1k' instead of '1000'",
+        },
+        # {
+        #     "name": "dec",
+        #     "type": "bool",
+        #     "value": False,
+        # },
+        {
+            "name": "limits",
+            "type": "group",
+            "children": [
+                {
+                    "name": "enable",
+                    "title": "Enable limits",
+                    "type": "bool",
+                    "value": False,
+                },
+                {
+                    "name": "min",
+                    "type": "int",
+                    "value": 0,
+                },
+                {
+                    "name": "max",
+                    "type": "int",
+                    "value": 10,
+                },
+            ],
+        },
+    ],
     "bool": [
         {
             "name": "default",
@@ -166,7 +222,7 @@ class ParamDialog(QDialog):
         # removing leading & trailing /
         opts["name"] = opts["name"].strip("/").replace(" ", "_")
 
-        if self.type == "float":
+        if self.type in ["float", "int"]:
             limits = self.param.child("limits")
             if limits.child("enable").value():
                 opts["limits"] = (
@@ -247,7 +303,7 @@ class ROSParamPlugin(Plugin):
         self.param = parameterTypes.GroupParameter(name="Root Group")
 
         menu = QMenuBar(param_tree)
-        for param_type in ["float", "bool", "str", "group"]:
+        for param_type in ["float", "int", "bool", "str", "group"]:
             menu.addAction("Add {}".format(param_type)).triggered.connect(
                 self.add_param_dialog(param_type))
 
