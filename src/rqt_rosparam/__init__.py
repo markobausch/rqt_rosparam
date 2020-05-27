@@ -270,8 +270,7 @@ class ROSParamPlugin(Plugin):
             if change == "value":
                 rospy.set_param(child_name, data)
                 print("Set '{}' to '{}'".format(child_name, data))
-            elif change == "context":
-                # currently not available
+            elif change == "contextMenu":
                 dialog = ParamDialog(param.opts["type"], param.opts)
                 if dialog.exec_():
                     param.setOpts(**dialog.get_opts())
@@ -317,12 +316,11 @@ class ROSParamPlugin(Plugin):
                 elif current_path not in self.param.names:
                     type_name = type(value).__name__
                     val = {
-                        "name": current_path,
+                        "name": current_path.strip("/"),
                         "type": type_name,
                         "default": value,
                         "value": value,
                     }
-                    print(val)
 
                     self.add_param(val)
 
